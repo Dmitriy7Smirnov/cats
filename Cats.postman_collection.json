@@ -1,0 +1,40 @@
+{
+	"info": {
+		"_postman_id": "936a8c96-4dca-4a57-b9bf-4adc40e1265f",
+		"name": "Cats",
+		"description": "for cats application\n",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:7700/cats?attribute=tail_length&order=asc",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7700",
+					"path": [
+						"cats"
+					],
+					"query": [
+						{
+							"key": "attribute",
+							"value": "tail_length"
+						},
+						{
+							"key": "order",
+							"value": "asc"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
