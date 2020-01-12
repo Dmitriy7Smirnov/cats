@@ -3,6 +3,9 @@ defmodule Cats.Repo.Migrations.CreateCats do
   use EnumType
 
   def change do
+    # creating the enumerated type
+    execute("CREATE TYPE cat_color AS ENUM ('black', 'white', 'black & white', 'red', 'red & white', 'red & black & white')")
+
   #   CREATE TYPE cat_color AS ENUM (
   #   'black',
   #   'white',
@@ -25,22 +28,22 @@ defmodule Cats.Repo.Migrations.CreateCats do
 
     create table(:cats) do
       add :name, :string
-      add :color, :string
+      add :color, :cat_color
       add :tail_length, :integer
       add :whiskers_length, :integer
     end
 
     create table(:cat_colors_info) do
-      add :color, :string
+      add :color, :cat_color
       add :count, :integer
     end
 
     create table(:cats_stat) do
-      add :tail_length_mean, :integer
-      add :tail_length_median, :integer
+      add :tail_length_mean, :float
+      add :tail_length_median, :float
       add :tail_length_mode, :integer
-      add :whiskers_length_mean, :integer
-      add :whiskers_length_median, :integer
+      add :whiskers_length_mean, :float
+      add :whiskers_length_median, :float
       add :whiskers_length_mode, :integer
     end
   end

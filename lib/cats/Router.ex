@@ -20,7 +20,12 @@ defmodule Router do
   end
 
   get "/cats" do
+    conn = %{conn | resp_headers: [{"content-type", "application/json"}]}
     attribute = conn.query_params["attribute"]
+    if  not Validator.attribute?(attribute) do
+      result1 = %{"error" => "attribute not correct"}
+      send_resp(conn, 200, Jason.encode!(result1))
+    end
     attr_atom = String.to_atom(attribute)
     order = conn.query_params["order"]
     order_atom = String.to_atom(order)
@@ -42,6 +47,16 @@ defmodule Router do
     result = Cats.Repo.all(query)
     IO.inspect Jason.encode!(result)
     send_resp(conn, 200, Jason.encode!(result))
+  end
+
+  post "/cat" do
+    conn = %{conn | resp_headers: [{"content-type", "application/json"}]}
+    new_cat = conn.body_params
+    changeset = Cats.Cat.changeset(%Cats.Cat{}, new_cat)
+    Cats.Repo.insert(changeset)
+    # Cats.Repo.insert(new_cat)
+    _result1 = %{"add" => "new cat"}
+    send_resp(conn, 200, Jason.encode!(new_cat))
   end
 
   match _ do
