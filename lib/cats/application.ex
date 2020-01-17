@@ -13,7 +13,9 @@ defmodule Cats.Application do
 
     children = [
       Cats.Repo,
-      Plug.Adapters.Cowboy.child_spec(:http, Router, [], port: web_port)
+      RequestCnt,
+      {Plug.Cowboy, scheme: :http, plug: Router, options: [port: web_port]}
+      # Plug.Adapters.Cowboy.child_spec(:http, Router, [], port: web_port)
       # Starts a worker by calling: Cats.Worker.start_link(arg)
       # {Cats.Worker, arg}
     ]

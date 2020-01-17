@@ -10,4 +10,8 @@ defmodule Validator do
     :lists.member(order, orders)
   end
 
+  def offset?(_offset) do
+    true
+  end
+
 end

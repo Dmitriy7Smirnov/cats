@@ -8,9 +8,28 @@
 	"item": [
 		{
 			"name": "Get",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
 			"request": {
 				"method": "GET",
-				"header": [],
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
 				"url": {
 					"raw": "http://localhost:7700/cats?attribute=tail_length&order=asc",
 					"protocol": "http",
@@ -30,6 +49,41 @@
 							"key": "order",
 							"value": "asc"
 						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "add cat",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"name\": \"Murzik\", \"color\": \"black\", \"tail_length\": 75, \"whiskers_length\": 150}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:7700/cat",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7700",
+					"path": [
+						"cat"
 					]
 				}
 			},

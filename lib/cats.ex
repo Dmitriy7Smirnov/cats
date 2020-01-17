@@ -9,8 +9,8 @@ defmodule Cats.Cat do
     field :whiskers_length, :integer
   end
 
-  def changeset(user, params \\ %{}) do
-    user
+  def changeset(cat, params \\ %{}) do
+    cat
     |> cast(params, [:name, :color, :tail_length, :whiskers_length])
     |> validate_required([:name, :color, :tail_length, :whiskers_length])
     # |> validate_format(:email, ~r/@/)
