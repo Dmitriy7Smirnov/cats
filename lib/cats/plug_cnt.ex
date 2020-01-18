@@ -1,22 +1,29 @@
 defmodule PlugCnt do
   import Plug.Conn
 
+  @request_threshold 3
+
   def init(options) do
     # initialize options
     options
   end
 
   def call(conn, _opts) do
-    num_of_requests = RequestCnt.request_start()
-    IO.inspect num_of_requests
-    case num_of_requests  do
-      x when x > 2 ->
-        RequestCnt.request_stop()
+    uniq_ref = :erlang.make_ref()
+    :gproc.send({:p, :l, :incr}, {self(), :incr, uniq_ref})
+    receive do
+      {^uniq_ref, request_count} when request_count >= @request_threshold ->
+        IO.inspect "Plug_cnt #{request_count}"
         conn
-        |> send_resp(429, "Too Many Requests")
-        |> halt()
-      _ ->
+          |> send_resp(429, "Too Many Requests")
+          |> halt()
+      {^uniq_ref, request_count} ->
+        IO.inspect "Plug_cnt #{request_count}"
         conn
+      after 1000 ->
+        conn
+          |> send_resp(429, "Server timeout error")
+          |> halt()
     end
   end
 end

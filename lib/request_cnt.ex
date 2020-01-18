@@ -4,35 +4,47 @@ defmodule RequestCnt do
   @ets_name :my_ets
   @num_of_requests_key :key
   @sub_request_message :sub_request
-  @requests_per_time 60000
+  @requests_per_time 5000
+  @gproc_key :incr
 
-  def request_start() do
-    [{@num_of_requests_key, num_of_requests}] =  :ets.lookup(@ets_name, @num_of_requests_key)
-    :ets.insert(@ets_name, {@num_of_requests_key, num_of_requests + 1})
-    num_of_requests + 1
-  end
-
-  def request_stop() do
-    :erlang.send_after(@requests_per_time, GenServer.whereis(__MODULE__), @sub_request_message)
-  end
-
-  def start_link(_params) do
+  def start_link(_args) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
   # Callbacks
-
   @impl true
-  def init(stack) do
+  def init(_stack) do
     :ets.new(@ets_name, [:set, :public, :named_table])
     :ets.insert(@ets_name, {@num_of_requests_key, 0})
-    {:ok, stack}
+    :gproc.reg({:p, :l, @gproc_key})
+    {:ok, []}
   end
 
   @impl true
-  def handle_info(@sub_request_message, state) do
-    [{@num_of_requests_key, num_of_requests}] =  :ets.lookup(@ets_name, @num_of_requests_key)
-    :ets.insert(@ets_name, {@num_of_requests_key, num_of_requests - 1})
+  def handle_info({pid, @gproc_key, uniq_ref}, state) do
+    request_count = :ets.update_counter(@ets_name, @num_of_requests_key, 1)
+    send(pid, {uniq_ref, request_count})
+    :erlang.monitor(:process, pid)
+    {:noreply, [pid | state]}
+  end
+
+  @impl true
+  def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, state) do
+    case :lists.member(pid, state) do
+      true -> :erlang.send_after(@requests_per_time, GenServer.whereis(__MODULE__), {@sub_request_message, pid})
+      _ -> :ignore
+    end
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({@sub_request_message, pid}, state) do
+    state1 = case :lists.member(pid, state) do
+      true ->
+        :ets.update_counter(@ets_name, @num_of_requests_key, -1)
+        :lists.delete(pid, state)
+      _ -> state
+    end
+    {:noreply, state1}
   end
 end
