@@ -23,21 +23,27 @@ defmodule Router do
     offset = conn.query_params["offset"]
     limit = conn.query_params["limit"]
 
+    IO.inspect limit
+
     result = with {:ok, attr_atom} <- Validator.attribute?(attribute),
       {:ok, order_atom} <- Validator.order?(order),
-      {:ok, _offset_atom} <- Validator.offset?(offset),
-      {:ok, _limit_atom} <- Validator.limit?(limit)
+      {:ok, offset_valid} <- Validator.offset?(offset),
+      {:ok, limit_valid} <- Validator.limit?(limit)
     do
       query = case order_atom do
         :desc -> from cat in "cats",
         where: cat.name == "Tihon" or cat.name == "Marfa",
         select: [:name, :color, :tail_length],
-        order_by: [desc: ^attr_atom]
+        order_by: [desc: ^attr_atom],
+        limit: ^limit_valid,
+        offset: ^offset_valid
 
         :asc -> from cat in "cats",
         where: cat.name == "Tihon" or cat.name == "Marfa",
         select: [:name, :color, :tail_length],
-        order_by: [asc: ^attr_atom]
+        order_by: [asc: ^attr_atom],
+        limit: ^limit_valid,
+        offset: ^offset_valid
       end
       result = Cats.Repo.all(query)
       IO.inspect Jason.encode!(result)
@@ -54,10 +60,9 @@ defmodule Router do
     new_cat = conn.body_params
     changeset = Cats.Cat.changeset(%Cats.Cat{}, new_cat)
     case Cats.Repo.insert(changeset) do
-      {:error, changeset} ->
-        put_resp_content_type(conn, "text/plain")
-        res = :io_lib.format("~p",[changeset.errors])
-        send_resp(conn, 200,:lists.flatten(res))
+      {:error, _changeset} ->
+        errors_map = Enum.map(changeset.errors, &Validator.err_to_map/1)
+        send_resp(conn, 200,Jason.encode!(errors_map))
       _ ->
         send_resp(conn, 201, "new cat was added")
     end

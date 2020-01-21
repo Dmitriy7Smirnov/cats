@@ -21,10 +21,31 @@ defmodule Validator do
   end
 
   def offset?(offset) do
-    {:ok, offset}
+    case offset do
+      nil -> {:ok, 0}
+      maybe_int -> str_to_int(maybe_int, "offset")
+    end
   end
 
   def limit?(limit) do
-    {:ok, limit}
+    case limit do
+      "all" -> {:ok, :all}
+      "ALL" -> {:ok, :all}
+      nil -> {:ok, :all}
+      maybe_int -> str_to_int(maybe_int, "limit")
+    end
+  end
+
+  defp str_to_int(maybe_int, param_str) do
+    try do
+      {:ok, String.to_integer(maybe_int)}
+    rescue
+      ArgumentError -> {:error, %{"error" => "#{param_str} not correct"}}
+    end
+  end
+
+  def err_to_map({field, {reason, params}}) do
+    IO.inspect Map.new(params)
+    %{"field error" => field, "reason" => reason}
   end
 end
