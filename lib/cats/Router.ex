@@ -1,11 +1,10 @@
 defmodule Router do
   use Plug.Router
-  require Ecto.Query
+  # import Ecto.Query
 
   # Imports only from/2 of Ecto.Query
   import Ecto.Query, only: [from: 2]
 
-  plug PlugJson
   plug PlugCnt
   plug :match
   plug Plug.Parsers, parsers: [:json],
@@ -14,45 +13,40 @@ defmodule Router do
   plug :dispatch
 
   get "/ping" do
-    send_resp(conn, 200, "Cats Service. Version 0.1")
+    conn
+      |> put_resp_content_type("text/plain")
+      send_resp(conn, 200, "Cats Service. Version 0.1")
   end
 
   get "/cats" do
+    conn = put_resp_content_type(conn, "application/json")
     attribute = conn.query_params["attribute"]
     order = conn.query_params["order"]
     offset = conn.query_params["offset"]
     limit = conn.query_params["limit"]
 
-    IO.inspect limit
-
-    result = with {:ok, attr_atom} <- Validator.attribute?(attribute),
-      {:ok, order_atom} <- Validator.order?(order),
-      {:ok, offset_valid} <- Validator.offset?(offset),
-      {:ok, limit_valid} <- Validator.limit?(limit)
+    result1 = with {:ok, attr_atom} <- Parser.attribute(attribute),
+      {:ok, order_atom} <- Parser.order(order),
+      {:ok, offset_valid} <- Parser.offset(offset),
+      {:ok, limit_valid} <- Parser.limit(limit)
     do
-      query = case order_atom do
-        :desc -> from cat in "cats",
-        where: cat.name == "Tihon" or cat.name == "Marfa",
-        select: [:name, :color, :tail_length],
-        order_by: [desc: ^attr_atom],
-        limit: ^limit_valid,
-        offset: ^offset_valid
+      query =  from cat in "cats",
+          where: cat.name == "Tihon" or cat.name == "Marfa",
+          select: [:name, :color, :tail_length],
+          order_by: [{^order_atom, ^attr_atom}],
+          offset: ^offset_valid
 
-        :asc -> from cat in "cats",
-        where: cat.name == "Tihon" or cat.name == "Marfa",
-        select: [:name, :color, :tail_length],
-        order_by: [asc: ^attr_atom],
-        limit: ^limit_valid,
-        offset: ^offset_valid
+      result = case limit_valid do
+        :all -> Cats.Repo.all(query)
+        number -> Cats.Repo.all(Ecto.Query.limit(query, ^number))
       end
-      result = Cats.Repo.all(query)
-      IO.inspect Jason.encode!(result)
-      send_resp(conn, 200, Jason.encode!(result))
+        send_resp(conn, 200, Jason.encode!(result))
     end
 
-    case result do
-      {:error, reason} -> send_resp(conn, 200, Jason.encode!(reason))
-      _ -> result
+    case result1 do
+      {:error, reason} ->
+          send_resp(conn, 400, Jason.encode!(reason))
+      _ -> result1
     end
   end
 
@@ -61,14 +55,18 @@ defmodule Router do
     changeset = Cats.Cat.changeset(%Cats.Cat{}, new_cat)
     case Cats.Repo.insert(changeset) do
       {:error, _changeset} ->
-        errors_map = Enum.map(changeset.errors, &Validator.err_to_map/1)
-        send_resp(conn, 200,Jason.encode!(errors_map))
+        errors_map = Enum.map(changeset.errors, &Parser.err_to_map/1)
+        send_resp(conn, 400,Jason.encode!(errors_map))
       _ ->
-        send_resp(conn, 201, "new cat was added")
+        conn
+          |> put_resp_content_type("text/plain")
+          send_resp(conn, 201, "new cat was added")
     end
   end
 
   match _ do
-    send_resp(conn, 404, "oops")
+    conn
+      |> put_resp_content_type("text/plain")
+      |> send_resp(404, "oops")
   end
 end

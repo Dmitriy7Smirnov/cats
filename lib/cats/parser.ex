@@ -1,6 +1,6 @@
-defmodule Validator do
+defmodule Parser do
 
-  def attribute?(attr) do
+  def attribute(attr) do
     attrs = ["id", "name", "color", "tail_length", "wiskers_length"]
     case :lists.member(attr, attrs) do
       true -> {:ok, String.to_atom(attr)}
@@ -8,7 +8,7 @@ defmodule Validator do
     end
   end
 
-  def order?(order) do
+  def order(order) do
     order1 = case order do
       nil -> "asc"
       _ -> order
@@ -20,17 +20,15 @@ defmodule Validator do
     end
   end
 
-  def offset?(offset) do
+  def offset(offset) do
     case offset do
       nil -> {:ok, 0}
       maybe_int -> str_to_int(maybe_int, "offset")
     end
   end
 
-  def limit?(limit) do
+  def limit(limit) do
     case limit do
-      "all" -> {:ok, :all}
-      "ALL" -> {:ok, :all}
       nil -> {:ok, :all}
       maybe_int -> str_to_int(maybe_int, "limit")
     end

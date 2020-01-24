@@ -9,21 +9,15 @@ defmodule PlugCnt do
   end
 
   def call(conn, _opts) do
-    uniq_ref = :erlang.make_ref()
-    :gproc.send({:p, :l, :incr}, {self(), :incr, uniq_ref})
-    receive do
-      {^uniq_ref, request_count} when request_count >= @request_threshold ->
-        IO.inspect "Plug_cnt #{request_count}"
+    case RequestCnt.change_request_cnt(self()) do
+      x when x >= @request_threshold ->
+        IO.inspect x
         conn
+          |> put_resp_content_type("application/json")
           |> send_resp(429, "Too Many Requests")
           |> halt()
-      {^uniq_ref, request_count} ->
-        IO.inspect "Plug_cnt #{request_count}"
+      _ ->
         conn
-      after 1000 ->
-        conn
-          |> send_resp(429, "Server timeout error")
-          |> halt()
     end
   end
 end

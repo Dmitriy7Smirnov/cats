@@ -1,11 +1,16 @@
 defmodule RequestCnt do
   use GenServer
 
-  @ets_name :my_ets
+  @ets_cnt :ets_cnt
+  @ets_pids :ets_pids
   @num_of_requests_key :key
   @sub_request_message :sub_request
   @requests_per_time 5000
-  @gproc_key :incr
+  @timeout 1000
+
+  def change_request_cnt(pid) do
+    GenServer.call(GenServer.whereis(__MODULE__), {:change_cnt, pid}, @timeout)
+  end
 
   def start_link(_args) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
@@ -13,25 +18,25 @@ defmodule RequestCnt do
 
   # Callbacks
   @impl true
-  def init(_stack) do
-    :ets.new(@ets_name, [:set, :public, :named_table])
-    :ets.insert(@ets_name, {@num_of_requests_key, 0})
-    :gproc.reg({:p, :l, @gproc_key})
-    {:ok, []}
+  def init(params) do
+    :ets.new(@ets_cnt, [:set, :private, :named_table])
+    :ets.new(@ets_pids, [:set, :private, :named_table])
+    :ets.insert(@ets_cnt, {@num_of_requests_key, 0})
+    {:ok, params}
   end
 
   @impl true
-  def handle_info({pid, @gproc_key, uniq_ref}, state) do
-    request_count = :ets.update_counter(@ets_name, @num_of_requests_key, 1)
-    send(pid, {uniq_ref, request_count})
+  def handle_call({:change_cnt, pid}, _from, state) do
+    :ets.insert(@ets_pids, {pid, 1})
     :erlang.monitor(:process, pid)
-    {:noreply, [pid | state]}
+    request_cnt = :ets.update_counter(@ets_cnt, @num_of_requests_key, 1)
+    {:reply, request_cnt, state}
   end
 
   @impl true
   def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, state) do
-    case :lists.member(pid, state) do
-      true -> :erlang.send_after(@requests_per_time, GenServer.whereis(__MODULE__), {@sub_request_message, pid})
+    case :ets.lookup(@ets_pids, pid) do
+      [{pid, 1}] -> :erlang.send_after(@requests_per_time, self(), {@sub_request_message, pid})
       _ -> :ignore
     end
     {:noreply, state}
@@ -39,12 +44,12 @@ defmodule RequestCnt do
 
   @impl true
   def handle_info({@sub_request_message, pid}, state) do
-    state1 = case :lists.member(pid, state) do
-      true ->
-        :ets.update_counter(@ets_name, @num_of_requests_key, -1)
-        :lists.delete(pid, state)
-      _ -> state
+    case :ets.lookup(@ets_pids, pid) do
+      [{pid, 1}] ->
+        :ets.update_counter(@ets_cnt, @num_of_requests_key, -1)
+        :ets.delete(@ets_pids, pid)
+      _ -> :ignore
     end
-    {:noreply, state1}
+    {:noreply, state}
   end
 end
