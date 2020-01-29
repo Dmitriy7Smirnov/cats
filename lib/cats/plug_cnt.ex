@@ -9,7 +9,7 @@ defmodule PlugCnt do
   end
 
   def call(conn, _opts) do
-    case RequestCnt.change_request_cnt(self()) do
+    case RequestMonitor.change_request_cnt(self()) do
       x when x >= @request_threshold ->
         IO.inspect x
         conn

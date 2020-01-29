@@ -22,11 +22,11 @@ defmodule Cats.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ecto_sql, "~> 3.0"},
-      {:postgrex, ">= 0.0.0"},
-      {:plug_cowboy, "~> 2.0"},
-      {:jason, "~> 1.1"},
       {:ecto_enum, "~> 1.3"},
+      {:ecto_sql, "~> 3.0"},
+      {:jason, "~> 1.1"},
+      {:plug_cowboy, "~> 2.0"},
+      {:postgrex, ">= 0.0.0"}
     ]
   end
 end
